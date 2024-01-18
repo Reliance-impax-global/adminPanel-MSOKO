@@ -1,0 +1,5 @@
+/* Reviews.css */
+.blurred-backdrop {
+  background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background color */
+  backdrop-filter: blur(10px); /* Apply blur effect */
+}
