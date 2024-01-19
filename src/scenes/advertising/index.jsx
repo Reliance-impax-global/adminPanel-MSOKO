@@ -1,5 +1,4 @@
 
-
 import React, { useEffect, useState } from "react";
 import {
   AppBar,
@@ -16,19 +15,12 @@ import {
   TableRow,
   TableCell,
 } from "@mui/material";
-import {
-  getFirestore,
-  collection,
-  getDocs,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  doc,
-} from "firebase/firestore";
+import { getDatabase, ref, push, update, remove } from "firebase/database";
+import Swal from "sweetalert2";
 import app from "../../firebase/firebaseConfig";
 
-const db = getFirestore(app);
-const adsCollection = collection(db, "ads");
+const db = getDatabase(app);
+const adsRef = ref(db, "ads");
 
 const initialAd = {
   name: "",
@@ -45,18 +37,23 @@ const Advertisment = () => {
   const [ad, setAd] = useState(initialAd);
   const [isEditing, setIsEditing] = useState(false);
 
-  const fetchDataFromFirestore = async () => {
+  const fetchDataFromRealtimeDatabase = async () => {
     try {
-      const querySnapshot = await getDocs(adsCollection);
-      const data = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-      setAds(data);
+      const dataSnapshot = await ref(db, "ads").get();
+      if (dataSnapshot.exists()) {
+        const data = Object.keys(dataSnapshot.val()).map((key) => ({
+          id: key,
+          ...dataSnapshot.val()[key],
+        }));
+        setAds(data);
+      }
     } catch (error) {
       console.error("Error fetching data:", error);
     }
   };
 
   useEffect(() => {
-    fetchDataFromFirestore();
+    fetchDataFromRealtimeDatabase();
   }, []);
 
   const handleChange = (e) => {
@@ -68,20 +65,23 @@ const Advertisment = () => {
     try {
       if (isEditing) {
         // If in editing mode, update the existing ad
-        const adRefToUpdate = doc(db, "ads", ad.id);
-        await updateDoc(adRefToUpdate, ad);
+        await update(ref(db, `ads/${ad.id}`), ad);
 
-        const updatedAds = ads.map((a) =>
-          a.id === ad.id ? { ...a, ...ad } : a
-        );
+        const updatedAds = ads.map((a) => (a.id === ad.id ? { ...a, ...ad } : a));
         setAds(updatedAds);
         setAd(initialAd);
         setIsEditing(false);
+
+        Swal.fire('Success!', 'The ad has been updated.', 'success');
       } else {
         // If in adding mode, add a new ad
-        const docRef = await addDoc(adsCollection, ad);
-        setAds([...ads, { id: docRef.id, ...ad }]);
+        const newAdRef = await push(adsRef);
+        await update(newAdRef, ad);
+
+        setAds([...ads, { id: newAdRef.key, ...ad }]);
         setAd(initialAd);
+
+        Swal.fire('Success!', 'The ad has been added.', 'success');
       }
     } catch (error) {
       console.error("Error updating/adding document:", error);
@@ -95,10 +95,24 @@ const Advertisment = () => {
 
   const handleDeleteAd = async (id) => {
     try {
-      const adRefToDelete = doc(db, "ads", id);
-      await deleteDoc(adRefToDelete);
-      const updatedAds = ads.filter((a) => a.id !== id);
-      setAds(updatedAds);
+      const result = await Swal.fire({
+        title: 'Are you sure?',
+        text: "You won't be able to revert this!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, delete it!',
+      });
+
+      if (result.isConfirmed) {
+        await remove(ref(db, `ads/${id}`));
+
+        const updatedAds = ads.filter((a) => a.id !== id);
+        setAds(updatedAds);
+
+        Swal.fire('Deleted!', 'The ad has been deleted.', 'success');
+      }
     } catch (error) {
       console.error("Error deleting document:", error);
     }
@@ -106,12 +120,12 @@ const Advertisment = () => {
 
   const handleApproveAd = async (id) => {
     try {
-      const adRefToApprove = doc(db, "ads", id);
-      await updateDoc(adRefToApprove, { isApproved: true });
-      const updatedAds = ads.map((a) =>
-        a.id === id ? { ...a, isApproved: true } : a
-      );
+      await update(ref(db, `ads/${id}`), { isApproved: true });
+
+      const updatedAds = ads.map((a) => (a.id === id ? { ...a, isApproved: true } : a));
       setAds(updatedAds);
+
+      Swal.fire('Success!', 'The ad has been approved.', 'success');
     } catch (error) {
       console.error("Error updating document:", error);
     }

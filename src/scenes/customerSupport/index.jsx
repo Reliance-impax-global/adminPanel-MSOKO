@@ -1,6 +1,7 @@
 
 
 import React, { useState, useEffect } from "react";
+import Swal from "sweetalert2";
 import {
   Box,
   Button,
@@ -24,23 +25,19 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import {
-  getFirestore,
-  collection,
-  getDocs,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  doc,
-} from "firebase/firestore";
-
+import { getDatabase, ref, push, update, remove, get } from "firebase/database";
 import app from "../../firebase/firebaseConfig";
 
+const db = getDatabase(app);
+const inquiriesRef = ref(db, "inquiries");
 
-
-
-const db = getFirestore(app);
-const inquiriesCollection = collection(db, "inquiries");
+const MySwal = Swal.mixin({
+  toast: true,
+  position: 'top-end',
+  showConfirmButton: false,
+  timer: 3000,
+  timerProgressBar: true,
+});
 
 const CustomerSupport = () => {
   const [ticket, setTicket] = useState("");
@@ -57,7 +54,20 @@ const CustomerSupport = () => {
   const handleAssignedStaffChange = (event) => {
     setAssignedStaff(event.target.value);
   };
+  const resolveInquiry = async (id) => {
+    try {
+      // Update the status of the resolved inquiry in the Realtime Database
+      update(ref(db, `inquiries/${id}`), { status: "Resolved" });
 
+      // Update local state with the resolved inquiry
+      const updatedInquiries = inquiries.map((inquiry) =>
+        inquiry.id === id ? { ...inquiry, status: "Resolved" } : inquiry
+      );
+      setInquiries(updatedInquiries);
+    } catch (error) {
+      console.error("Error resolving inquiry:", error);
+    }
+  };
   const submitTicket = async () => {
     try {
       const newInquiry = {
@@ -66,35 +76,82 @@ const CustomerSupport = () => {
         status: "Pending",
       };
 
-      // Add the new inquiry to Firebase
-      const docRef = await addDoc(inquiriesCollection, newInquiry);
+      const newInquiryRef = push(inquiriesRef);
+      update(newInquiryRef, newInquiry);
 
-      // Update local state with the new inquiry
-      setInquiries([...inquiries, { id: docRef.id, ...newInquiry }]);
+      setInquiries([...inquiries, { id: newInquiryRef.key, ...newInquiry }]);
       setTicket("");
       setAssignedStaff("");
+
+      MySwal.fire('Success!', 'The inquiry has been submitted.', 'success');
     } catch (error) {
       console.error("Error submitting ticket:", error);
     }
   };
 
-  const resolveInquiry = async (index) => {
+  const deleteInquiry = async (id) => {
     try {
-      const updatedInquiries = [...inquiries];
-      const inquiryToUpdate = updatedInquiries[index];
-
-      // Update the status of the resolved inquiry in Firebase
-      await updateDoc(doc(db, "inquiries", inquiryToUpdate.id), {
-        status: "Resolved",
+      const result = await Swal.fire({
+        title: 'Are you sure?',
+        text: "You won't be able to revert this!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, delete it!',
       });
 
-      // Update local state with the resolved inquiry
-      updatedInquiries[index].status = "Resolved";
-      setInquiries(updatedInquiries);
+      if (result.isConfirmed) {
+        await remove(ref(db, `inquiries/${id}`));
+
+        const updatedInquiries = inquiries.filter((inquiry) => inquiry.id !== id);
+        setInquiries(updatedInquiries);
+
+        MySwal.fire('Deleted!', 'The inquiry has been deleted.', 'success');
+      }
     } catch (error) {
-      console.error("Error resolving inquiry:", error);
+      console.error('Error deleting inquiry:', error);
     }
   };
+
+  const submitEdit = async () => {
+    try {
+      const editedInquiry = selectedInquiry;
+      editedInquiry.content = editedTicket;
+
+      await update(ref(db, `inquiries/${editedInquiry.id}`), {
+        content: editedTicket,
+      });
+
+      const updatedInquiries = inquiries.map((inquiry) =>
+        inquiry.id === editedInquiry.id ? editedInquiry : inquiry
+      );
+      setInquiries(updatedInquiries);
+
+      MySwal.fire('Success!', 'The inquiry has been edited.', 'success');
+
+      closeEditModal();
+    } catch (error) {
+      console.error("Error editing inquiry:", error);
+    }
+  };
+
+  const fetchInquiries = async () => {
+    try {
+      const dataSnapshot = await get(inquiriesRef);
+      const data = [];
+      dataSnapshot.forEach((childSnapshot) => {
+        data.push({ id: childSnapshot.key, ...childSnapshot.val() });
+      });
+      setInquiries(data);
+    } catch (error) {
+      console.error("Error fetching inquiries:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchInquiries();
+  }, []);
 
   const openEditModal = (inquiry) => {
     setSelectedInquiry(inquiry);
@@ -107,43 +164,6 @@ const CustomerSupport = () => {
     setEditedTicket("");
     setEditModalOpen(false);
   };
-
-  const submitEdit = async () => {
-    try {
-      const editedInquiry = selectedInquiry;
-      editedInquiry.content = editedTicket;
-
-      // Update the content of the edited inquiry in Firebase
-      await updateDoc(doc(db, "inquiries", editedInquiry.id), {
-        content: editedTicket,
-      });
-
-      // Update local state with the edited inquiry
-      const updatedInquiries = inquiries.map((inquiry) =>
-        inquiry.id === editedInquiry.id ? editedInquiry : inquiry
-      );
-      setInquiries(updatedInquiries);
-
-      // Close the edit modal
-      closeEditModal();
-    } catch (error) {
-      console.error("Error editing inquiry:", error);
-    }
-  };
-
-  useEffect(() => {
-    const fetchInquiries = async () => {
-      try {
-        const querySnapshot = await getDocs(inquiriesCollection);
-        const data = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-        setInquiries(data);
-      } catch (error) {
-        console.error("Error fetching inquiries:", error);
-      }
-    };
-
-    fetchInquiries();
-  }, []);
 
   return (
     <Card>
@@ -202,8 +222,8 @@ const CustomerSupport = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {inquiries.map((inquiry, index) => (
-                <TableRow key={index}>
+              {inquiries.map((inquiry) => (
+                <TableRow key={inquiry.id}>
                   <TableCell>{inquiry.content}</TableCell>
                   <TableCell>{inquiry.assignedStaff}</TableCell>
                   <TableCell>{inquiry.status}</TableCell>
@@ -215,66 +235,72 @@ const CustomerSupport = () => {
                           flexDirection: { xs: "column", md: "row" },
                           alignItems: { xs: "center", md: "flex-start" },
                           gap: "16px",
-                          }}
-                          >
-                          <Button
+                        }}
+                      >
+                        <Button
                           variant="outlined"
                           color="info"
-                          onClick={() => resolveInquiry(index)}
+                          onClick={() => resolveInquiry(inquiry.id)}
                           sx={{ marginBottom: { xs: "8px", md: "0" } }}
-                          >
+                        >
                           Resolve
-                          </Button>
-                          <Button
+                        </Button>
+                        <Button
                           variant="outlined"
                           color="secondary"
                           onClick={() => openEditModal(inquiry)}
-                          >
+                        >
                           Edit
-                          </Button>
-                          </Box>
-                          )}
-                          </TableCell>
-                          </TableRow>
-                          ))}
-                          </TableBody>
-                          </Table>
-                          </TableContainer>
-                          {/* Inquiry Details Modal */}
-                          <Dialog
-                                 open={isEditModalOpen}
-                                 onClose={closeEditModal}
-                                 maxWidth="md"
-                                 fullWidth
-                               >
-                          <DialogTitle>Inquiry Details</DialogTitle>
-                          <DialogContent>
-                          {selectedInquiry && (
-                          <TextField
-                          label="Inquiry"
-                          value={editedTicket}
-                          multiline
-                          rows={4}
+                        </Button>
+                        <Button
                           variant="outlined"
-                          color="info"
-                          style={{ marginTop: "10px" }}
-                          fullWidth
-                          onChange={(e) => setEditedTicket(e.target.value)}
-                          />
-                          )}
-                          </DialogContent>
-                          <DialogActions>
-                          <Button onClick={closeEditModal} color="warning">
-                          Close
-                          </Button>
-                          <Button onClick={submitEdit} color="success">
-                          Save Changes
-                          </Button>
-                          </DialogActions>
-                          </Dialog>
-                          </CardContent>
-                          </Card>
-                          );
-                          };
-                          
-                          export default CustomerSupport;
+                          color="error"
+                          onClick={() => deleteInquiry(inquiry.id)}
+                        >
+                          Delete
+                        </Button>
+                      </Box>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+        <Dialog
+          open={isEditModalOpen}
+          onClose={closeEditModal}
+          maxWidth="md"
+          fullWidth
+        >
+          <DialogTitle>Inquiry Details</DialogTitle>
+          <DialogContent>
+            {selectedInquiry && (
+              <TextField
+                label="Inquiry"
+                value={editedTicket}
+                multiline
+                rows={4}
+                variant="outlined"
+                color="info"
+                style={{ marginTop: "10px" }}
+                fullWidth
+                onChange={(e) => setEditedTicket(e.target.value)}
+              />
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={closeEditModal} color="warning">
+              Close
+            </Button>
+            <Button onClick={submitEdit} color="success">
+              Save Changes
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </CardContent>
+    </Card>
+  );
+};
+
+export default CustomerSupport;

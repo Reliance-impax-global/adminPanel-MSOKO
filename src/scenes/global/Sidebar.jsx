@@ -148,7 +148,7 @@ const Sidebar = () => {
                 fontWeight="bold"
                 sx={{ mt: "5px",mb:"20px" }}
               >
-                {user ? user.displayName || "Guest User" : "Guest User"}
+               Hi, {user ? user.displayName || "Guest User" : "Guest User"}
               </Typography>
               <Typography variant="h5" color={colors.greenAccent[500]}>
                 M-Soko Admin Panel
