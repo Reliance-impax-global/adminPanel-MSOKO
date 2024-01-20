@@ -206,6 +206,7 @@ const Welcome = () => {
   const [signinError, setSigninError] = useState("");
 
   const handleUserLogin = (data) => {
+  
     userLogin(data.email, data.password)
       .then((result) => {
         const user = result.user;

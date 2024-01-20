@@ -35,16 +35,17 @@ const Topbar = () => {
       if (result.isConfirmed) {
         // If the user confirms, perform logout
         userLogout();
+
+        // Redirect to the login page after logout
+        navigate('/');
       }
     });
   };
 
   const handleLoginLogout = () => {
     if (user) {
-      
       handleLogout();
     } else {
-      
       navigate('/');
     }
   };

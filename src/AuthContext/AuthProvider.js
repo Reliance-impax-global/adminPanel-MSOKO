@@ -76,6 +76,8 @@
 
 // export default AuthProvider
 // AuthProvider.js
+// AuthProvider.js
+
 import React, { createContext, useEffect, useState } from 'react';
 import {
   getAuth,
@@ -123,45 +125,49 @@ const AuthProvider = ({ children }) => {
       .then((userCredential) => {
         const user = userCredential.user;
         updateUserDatabase(user);
-        return userCredential; // Return the userCredential for consistency
+        return userCredential; 
       })
       .catch((error) => {
         setLoader(false);
         console.error('Error signing up:', error);
-        throw error; // Rethrow the error to propagate it to the caller
-      });
-  };
-
-  const userLogin = (email, password) => {
-    setLoader(true);
-    return signInWithEmailAndPassword(auth, email, password)
-      .then((userCredential) => {
-        const user = userCredential.user;
-        // Fetch additional user data including displayName
-        return getAdditionalUserInfo(user)
-          .then((additionalUserInfo) => {
-            const userWithAdditionalData = {
-              ...user,
-              displayName: additionalUserInfo?.profile?.name || user.displayName,
-            };
-            updateUserDatabase(userWithAdditionalData);
-            return userCredential;
-          })
-          .catch((error) => {
-            console.error('Error fetching additional user data:', error);
-            updateUserDatabase(user);
-            return userCredential;
-          });
-      })
-      .catch((error) => {
-        setLoader(false);
-        console.error('Error logging in:', error);
         throw error;
       });
   };
-  
-  
-  
+
+// ...
+
+const userLogin = (email, password) => {
+  setLoader(true);
+  return signInWithEmailAndPassword(auth, email, password)
+    .then(async (userCredential) => {
+      const user = userCredential.user;
+
+      try {
+        const additionalUserInfo = await getAdditionalUserInfo(userCredential);
+        const userWithAdditionalData = {
+          ...user,
+          displayName: additionalUserInfo?.profile?.name || user.displayName,
+        };
+        updateUserDatabase(userWithAdditionalData);
+        return userCredential;
+      } catch (error) {
+        console.error('Error fetching additional user data:', error);
+        updateUserDatabase(user);
+        return userCredential;
+      }
+    })
+    .catch((error) => {
+      setLoader(false);
+      console.error('Error logging in:', error);
+      throw error;
+    });
+};
+
+// ...
+
+
+// ...
+
 
   const userGoogleLogin = (provider) => {
     setLoader(true);
@@ -180,11 +186,11 @@ const AuthProvider = ({ children }) => {
         const userData = {
           uid: user.uid,
           email: user.email,
-          displayName: name || user.displayName || '', // Use provided name or existing displayName
-          photoURL: photo || user.photoURL || '', // Use provided photo or existing photoURL
-          role: role || '', // Set the user role
+          displayName: name || user.displayName || '',
+          photoURL: photo || user.photoURL || '',
+          role: role || '',
         };
-  
+
         set(usersRef, userData)
           .then(() => {
             console.log('User data sent to Realtime Database successfully');
@@ -198,8 +204,6 @@ const AuthProvider = ({ children }) => {
         console.error('Error updating profile:', error);
       });
   };
-  
-  
 
   const userLogout = () => {
     setLoader(false);

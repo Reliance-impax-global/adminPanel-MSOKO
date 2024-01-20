@@ -62,6 +62,7 @@ const Sidebar = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [selected, setSelected] = useState("Dashboard");
   const { user } = useContext(UserAuthContext);
+  
   return (
     <Box
       sx={{

@@ -5,6 +5,7 @@ import {
   ref,
   onValue,
   getDatabase,
+  get,
 } from 'firebase/database';
 import {
   Container,
@@ -26,30 +27,63 @@ import {
 import EditIcon from "@mui/icons-material/Edit";
 import BlockIcon from "@mui/icons-material/Block";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
-
 import HistoryIcon from "@mui/icons-material/History";
 import UserActivityLog from "../../components/UserActivityLog";
 import { Link } from "react-router-dom";
 import ResourceDetails from "../../components/ResourceDetails";
+import app from "../../firebase/firebaseConfig";
+
+const getUserData = async () => {
+  const db = getDatabase(app);
+  const usersRef = ref(db, 'users/');
+  const snapshot = await get(usersRef);
+
+  if (snapshot.exists()) {
+    const usersData = [];
+    snapshot.forEach((childSnapshot) => {
+      const userData = childSnapshot.val();
+      usersData.push({
+        id: childSnapshot.key,
+        uid: userData.uid,
+        email: userData.email,
+        displayName: userData.displayName,
+        photoURL: userData.photoURL,
+        role: userData.role,
+        isBanned: userData.isBanned,
+        isActive: userData.isActive,
+      });
+    });
+
+    return usersData;
+  } else {
+    return [];
+  }
+};
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]); // Store user data
   const [selectedUser, setSelectedUser] = useState(null);
   const [openActivityDialog, setOpenActivityDialog] = useState(false);
-  const [openResourceSection, setOpenResourceSection] = useState(false); // New state for resource section
-  const [openResourceModal, setOpenResourceModal] = useState(false); // State for the resource modal
+  const [openResourceSection, setOpenResourceSection] = useState(false);
+  const [openResourceModal, setOpenResourceModal] = useState(false);
   const [selectedResource, setSelectedResource] = useState(null);
 
   useEffect(() => {
-    // Firebase Realtime Database reference
-    const db = getDatabase();
-    const dbRef = ref(db);
+    const fetchData = async () => {
+      const data = await getUserData();
+      setUsers(data);
+    };
 
-    // Attach an asynchronous callback to read the data from Firebase
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    const db = getDatabase();
+    const dbRef = ref(db, 'users/');
+
     const fetchData = onValue(dbRef, (snapshot) => {
       const data = snapshot.val();
       if (data && typeof data === 'object') {
-        // Convert the object of objects into an array
         const usersArray = Object.keys(data).map((key) => ({
           id: key,
           ...data[key],
@@ -59,7 +93,6 @@ const UserManagement = () => {
       }
     });
 
-    // Detach the callback when the component unmounts
     return () => {
       fetchData();
     };
@@ -67,7 +100,6 @@ const UserManagement = () => {
 
   const handleEditUser = (user) => {
     setSelectedUser(user);
-    // Open user profile edit dialog
   };
 
   const handleBlockUser = (userId) => {
@@ -83,29 +115,26 @@ const UserManagement = () => {
     setOpenActivityDialog(false);
   };
 
-  // Function to toggle the resource section
   const toggleResourceSection = () => {
     setOpenResourceSection(!openResourceSection);
   };
 
-  // Function to handle opening the resource modal
-const handleOpenResourceModal = (resourceKey) => {
-  console.log("Opening modal for resource:", resourceKey);
-  setOpenResourceModal(true);
-  setSelectedResource(resourceKey);
-};
+  const handleOpenResourceModal = (resourceKey) => {
+    console.log("Opening modal for resource:", resourceKey);
+    setOpenResourceModal(true);
+    setSelectedResource(resourceKey);
+  };
 
-const handleCloseResourceModal = () => {
-  console.log("Closing modal");
-  setOpenResourceModal(false);
-  setSelectedResource(null);
-};
+  const handleCloseResourceModal = () => {
+    console.log("Closing modal");
+    setOpenResourceModal(false);
+    setSelectedResource(null);
+  };
 
-const handleSendResource = (userId, resource) => {
-  // Logic to send the resource to the user with the given userId
-  console.log(`Sending resource ${resource.title} to user with ID ${userId}`);
-  // Implement your resource sending logic here
-};
+  const handleSendResource = (userId, resource) => {
+    console.log(`Sending resource ${resource.title} to user with ID ${userId}`);
+    // Implement your resource sending logic here
+  };
 
   const resourceData = {
     resource1: {
@@ -138,7 +167,6 @@ const handleSendResource = (userId, resource) => {
       <Typography variant="h2" gutterBottom>
         User Management
       </Typography>
-      {/* Toggle button for resource section */}
       <Button 
         variant="outlined"
         color="info"
@@ -148,7 +176,6 @@ const handleSendResource = (userId, resource) => {
         {openResourceSection ? "Hide Resources" : "Show Resources"}
       </Button>
 
-      {/* Resource Links */}
       {openResourceSection && (
          <ul>
          <li>
@@ -194,14 +221,13 @@ const handleSendResource = (userId, resource) => {
        </ul>
       )}
 
-      {/* Resource Modal */}
       {selectedResource && (
         <ResourceDetails
           open={openResourceModal}
           onClose={handleCloseResourceModal}
           resource={resourceData[selectedResource]}
-          users={users} // Provide the users array as a prop
-          onSendResource={handleSendResource} // Pass your send resource function here
+          users={users}
+          onSendResource={handleSendResource}
         />
       )}
       <TableContainer>
@@ -209,6 +235,7 @@ const handleSendResource = (userId, resource) => {
           <TableHead>
             <TableRow>
               <TableCell>Username</TableCell>
+              <TableCell>Email</TableCell>
               <TableCell>Role</TableCell>
               <TableCell>Status</TableCell>
               <TableCell>Action</TableCell>
@@ -217,7 +244,8 @@ const handleSendResource = (userId, resource) => {
           <TableBody>
             {users.map((user) => (
               <TableRow key={user.id}>
-                <TableCell>{user.username}</TableCell>
+                <TableCell>{user.displayName}</TableCell>
+                <TableCell>{user.email}</TableCell>
                 <TableCell>{user.role}</TableCell>
                 <TableCell>
                   {user.isBanned
@@ -256,12 +284,7 @@ const handleSendResource = (userId, resource) => {
                     onClick={() => handleViewActivity(user)}
                     aria-label="View Activity"
                   >
-                    <IconButton
-                      onClick={() => handleViewActivity(user)}
-                      aria-label="View Activity"
-                    >
-                      <HistoryIcon />
-                    </IconButton>
+                    <HistoryIcon />
                   </IconButton>
                 </TableCell>
               </TableRow>
@@ -270,7 +293,6 @@ const handleSendResource = (userId, resource) => {
         </Table>
       </TableContainer>
 
-      {/* User Activity Dialog */}
       <Dialog
         open={openActivityDialog}
         onClose={handleActivityDialogClose}
