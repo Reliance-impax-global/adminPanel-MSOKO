@@ -75,6 +75,7 @@
 // }
 
 // export default AuthProvider
+// AuthProvider.js
 import React, { createContext, useEffect, useState } from 'react';
 import {
   getAuth,
@@ -84,6 +85,7 @@ import {
   signOut,
   signInWithPopup,
   updateProfile,
+  getAdditionalUserInfo,
 } from 'firebase/auth';
 import { getDatabase, ref, set } from 'firebase/database';
 import app from '../firebase/firebaseConfig';
@@ -96,46 +98,109 @@ const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loader, setLoader] = useState(true);
 
+  const updateUserDatabase = (user) => {
+    const db = getDatabase(app);
+    const usersRef = ref(db, 'users/' + user.uid);
+    const userData = {
+      uid: user.uid,
+      email: user.email,
+      displayName: user.displayName || '',
+      photoURL: user.photoURL || '',
+    };
+
+    set(usersRef, userData)
+      .then(() => {
+        console.log('User data sent to Realtime Database successfully');
+      })
+      .catch((error) => {
+        console.error('Error updating Realtime Database:', error);
+      });
+  };
+
   const SignUp = (email, password) => {
     setLoader(true);
-    return createUserWithEmailAndPassword(auth, email, password);
+    return createUserWithEmailAndPassword(auth, email, password)
+      .then((userCredential) => {
+        const user = userCredential.user;
+        updateUserDatabase(user);
+        return userCredential; // Return the userCredential for consistency
+      })
+      .catch((error) => {
+        setLoader(false);
+        console.error('Error signing up:', error);
+        throw error; // Rethrow the error to propagate it to the caller
+      });
   };
 
   const userLogin = (email, password) => {
     setLoader(true);
-    return signInWithEmailAndPassword(auth, email, password);
+    return signInWithEmailAndPassword(auth, email, password)
+      .then((userCredential) => {
+        const user = userCredential.user;
+        // Fetch additional user data including displayName
+        return getAdditionalUserInfo(user)
+          .then((additionalUserInfo) => {
+            const userWithAdditionalData = {
+              ...user,
+              displayName: additionalUserInfo?.profile?.name || user.displayName,
+            };
+            updateUserDatabase(userWithAdditionalData);
+            return userCredential;
+          })
+          .catch((error) => {
+            console.error('Error fetching additional user data:', error);
+            updateUserDatabase(user);
+            return userCredential;
+          });
+      })
+      .catch((error) => {
+        setLoader(false);
+        console.error('Error logging in:', error);
+        throw error;
+      });
   };
+  
+  
+  
 
   const userGoogleLogin = (provider) => {
     setLoader(true);
     return signInWithPopup(auth, provider);
   };
 
-  const updateUserProfile = (user, name, photo) => {
+  const updateUserProfile = (user, name, photo, role) => {
     setLoader(true);
-  
     updateProfile(user, {
       displayName: name,
       photoURL: photo,
     })
       .then(() => {
         const db = getDatabase(app);
-        const userRef = ref(db, 'users/' + user.uid);
-  
-        set(ref(userRef), {
+        const usersRef = ref(db, 'users/' + user.uid);
+        const userData = {
           uid: user.uid,
-          email: user.email, // Add this line
-          name: name,
-          photoURL: photo,
-        });
+          email: user.email,
+          displayName: name || user.displayName || '', // Use provided name or existing displayName
+          photoURL: photo || user.photoURL || '', // Use provided photo or existing photoURL
+          role: role || '', // Set the user role
+        };
   
-        setLoader(false);
+        set(usersRef, userData)
+          .then(() => {
+            console.log('User data sent to Realtime Database successfully');
+          })
+          .catch((error) => {
+            console.error('Error updating Realtime Database:', error);
+          });
       })
       .catch((error) => {
-        console.error('Error updating profile:', error);
         setLoader(false);
+        console.error('Error updating profile:', error);
       });
   };
+  
+  
+
   const userLogout = () => {
     setLoader(false);
     localStorage.removeItem('token');
@@ -146,12 +211,16 @@ const AuthProvider = ({ children }) => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setLoader(false);
+
+      if (currentUser) {
+        updateUserDatabase(currentUser);
+      }
     });
 
     return () => {
       unsubscribe();
     };
-  }, []);
+  }, [setLoader, updateUserDatabase]);
 
   const AuthInfo = {
     loader,
