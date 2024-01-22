@@ -15,7 +15,7 @@ import {
   TableRow,
   TableCell,
 } from "@mui/material";
-import { getDatabase, ref, push, update, remove } from "firebase/database";
+import { getDatabase, ref, push, update, remove, onValue } from "firebase/database";
 import Swal from "sweetalert2";
 import app from "../../firebase/firebaseConfig";
 
@@ -39,19 +39,22 @@ const Advertisment = () => {
 
   const fetchDataFromRealtimeDatabase = async () => {
     try {
-      const dataSnapshot = await ref(db, "ads").get();
-      if (dataSnapshot.exists()) {
-        const data = Object.keys(dataSnapshot.val()).map((key) => ({
-          id: key,
-          ...dataSnapshot.val()[key],
-        }));
-        setAds(data);
-      }
+      const dbRef = ref(db, "ads");
+      
+      onValue(dbRef, (snapshot) => {
+        if (snapshot.exists()) {
+          const data = Object.keys(snapshot.val()).map((key) => ({
+            id: key,
+            ...snapshot.val()[key],
+          }));
+          setAds(data);
+        }
+      });
     } catch (error) {
       console.error("Error fetching data:", error);
     }
   };
-
+  
   useEffect(() => {
     fetchDataFromRealtimeDatabase();
   }, []);

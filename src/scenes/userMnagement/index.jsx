@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import {
-  // ... (your existing imports)
+  
   database,
   ref,
   onValue,
   getDatabase,
   get,
+  update,
 } from 'firebase/database';
 import {
   Container,
@@ -102,8 +103,30 @@ const UserManagement = () => {
     setSelectedUser(user);
   };
 
-  const handleBlockUser = (userId) => {
-    // Implement logic to block or suspend user
+  const handleBlockUser = async (userId) => {
+    const db = getDatabase(app);
+    const userRef = ref(db, `users/${userId}`);
+    const userSnapshot = await get(userRef);
+
+    if (userSnapshot.exists()) {
+      const userData = userSnapshot.val();
+
+      // Toggle the 'isBanned' status
+      const updatedUserData = {
+        ...userData,
+        isBanned: !userData.isBanned,
+      };
+
+      // Update the user data in the database
+      update(ref(db, `users/${userId}`), updatedUserData);
+
+      // Update the local state
+      setUsers((prevUsers) =>
+        prevUsers.map((user) =>
+          user.id === userId ? { ...user, isBanned: !user.isBanned } : user
+        )
+      );
+    }
   };
 
   const handleViewActivity = (user) => {
