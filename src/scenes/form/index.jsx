@@ -159,22 +159,32 @@ import useMediaQuery from "@mui/material/useMediaQuery";
 import Header from "../../components/Header";
 import { useContext } from "react";
 import { UserAuthContext } from "../../AuthContext/AuthProvider";
-import { getDatabase, ref, set } from 'firebase/database';
+import { getDatabase, push, ref, set } from 'firebase/database';
+import Swal from "sweetalert2";
 
 const Form = () => {
   const isNonMobile = useMediaQuery("(min-width:600px)");
   const { user } = useContext(UserAuthContext);
 
-  const handleFormSubmit = (values) => {
+  const handleFormSubmit = (values, { resetForm }) => {
     console.log(values);
     sendFormDataToFirebase(values);
+    Swal.fire({
+      icon: 'success',
+      title: 'Success!',
+      text: 'Service created successfully.',
+    });
+    resetForm();
   };
 
   const sendFormDataToFirebase = (formData) => {
     const db = getDatabase();
     const servicesRef = ref(db, 'services');
-
-    set(servicesRef, formData)
+  
+    // Generate a new child location with a unique key
+    const newServiceRef = push(servicesRef);
+  
+    set(newServiceRef, formData)
       .then(() => {
         console.log('Form data sent to Realtime Database successfully');
       })
@@ -182,6 +192,7 @@ const Form = () => {
         console.error('Error updating Realtime Database:', error);
       });
   };
+  
 
   return (
     <Box m="20px">
