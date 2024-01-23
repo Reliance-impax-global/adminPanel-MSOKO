@@ -168,20 +168,46 @@
 
 
 
-import { Box, Button, TextField } from "@mui/material";
+import { Box, Button, TextField, Typography } from "@mui/material";
 import { Formik } from "formik";
 import * as yup from "yup";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import Header from "../../components/Header";
-import { useContext } from "react";
+import { useContext, useEffect, useState } from "react";
 import { UserAuthContext } from "../../AuthContext/AuthProvider";
-import { getDatabase, push, ref, set } from 'firebase/database';
+import { getDatabase, off, onValue, push, ref, set } from 'firebase/database';
 import Swal from "sweetalert2";
 
 const Form = () => {
   const isNonMobile = useMediaQuery("(min-width:600px)");
   const { user } = useContext(UserAuthContext);
+  const [services, setServices] = useState([]);
+  useEffect(() => {
+    const db = getDatabase();
+    const servicesRef = ref(db, 'services');
 
+    // Listen for changes in the services data
+    const onDataChange = (snapshot) => {
+      const servicesData = [];
+
+      snapshot.forEach((childSnapshot) => {
+        const data = childSnapshot.val();
+        servicesData.push(data);
+      });
+
+      setServices(servicesData);
+    };
+
+    // Attach the onDataChange event listener
+    onValue(servicesRef, onDataChange);
+
+    // Detach the event listener when the component unmounts
+    return () => {
+      off(servicesRef, onDataChange);
+    };
+  }, []); 
+
+  
   const handleFormSubmit = (values, { resetForm }) => {
     console.log(values);
     sendFormDataToFirebase(values);
@@ -345,6 +371,24 @@ const Form = () => {
           </form>
         )}
       </Formik>
+      <Box m="20px">
+      <Header title="DISPLAY SERVICES" subtitle="List of Services" />
+
+      <Box m="20px">
+  <Header title="DISPLAY SERVICES" subtitle="List of Services" />
+
+  {services.length > 0 && (
+    <Box p="10px" mb="10px" border="1px solid #ddd">
+      <Typography variant="h6">{services[0].serviceName}</Typography>
+      <Typography variant="body1">Service Details: {services[0].serviceDetails}</Typography>
+      <Typography variant="body1">Contact: {services[0].contact}</Typography>
+      <Typography variant="body1">Price: {services[0].price}</Typography>
+      <Typography variant="body1">Offer Price: {services[0].offerPrice}</Typography>
+      {/* Additional fields as needed */}
+    </Box>
+  )}
+</Box>
+    </Box>
     </Box>
   );
 };
