@@ -291,6 +291,7 @@ const Form = () => {
                 onBlur={handleBlur}
                 onChange={handleChange}
                 value={values.sellerEmail}
+                defaultValue={values.sellerEmail}
                 name="sellerEmail" 
                 error={!!touched.sellerEmail && !!errors.sellerEmail}
                 helperText={touched.sellerEmail && errors.sellerEmail}
@@ -304,6 +305,7 @@ const Form = () => {
                 onBlur={handleBlur}
                 onChange={handleChange}
                 value={values.serviceName}
+                defaultValue={values.serviceName}
                 name="serviceName"
                 error={!!touched.serviceName && !!errors.serviceName}
                 helperText={touched.serviceName && errors.serviceName}
@@ -344,7 +346,7 @@ const Form = () => {
                 onBlur={handleBlur}
                 onChange={handleChange}
                 value={values.price}
-                name="price"
+                name="price" 
                 error={!!touched.price && !!errors.price}
                 helperText={touched.price && errors.price}
                 sx={{ gridColumn: "span 4" }}
