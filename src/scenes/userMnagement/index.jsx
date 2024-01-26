@@ -24,6 +24,8 @@ import {
   DialogContent,
   DialogActions,
   Button,
+  CircularProgress,
+  Box,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import BlockIcon from "@mui/icons-material/Block";
@@ -68,11 +70,12 @@ const UserManagement = () => {
   const [openResourceSection, setOpenResourceSection] = useState(false);
   const [openResourceModal, setOpenResourceModal] = useState(false);
   const [selectedResource, setSelectedResource] = useState(null);
-
+  const [isLoading, setIsLoading] = useState(true)
   useEffect(() => {
     const fetchData = async () => {
       const data = await getUserData();
       setUsers(data);
+      setIsLoading(false); 
     };
 
     fetchData();
@@ -91,6 +94,7 @@ const UserManagement = () => {
         }));
 
         setUsers(usersArray);
+        setIsLoading(false);
       }
     });
 
@@ -253,6 +257,11 @@ const UserManagement = () => {
           onSendResource={handleSendResource}
         />
       )}
+      {isLoading ? ( 
+          <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+            <CircularProgress color="info" />
+          </Box>
+        ) : (
       <TableContainer>
         <Table>
           <TableHead>
@@ -314,7 +323,7 @@ const UserManagement = () => {
             ))}
           </TableBody>
         </Table>
-      </TableContainer>
+      </TableContainer>)}
 
       <Dialog
         open={openActivityDialog}

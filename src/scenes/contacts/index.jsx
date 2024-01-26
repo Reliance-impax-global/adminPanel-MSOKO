@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from "react";
-import { Box } from "@mui/material";
+import { Box, CircularProgress } from "@mui/material";
 import { DataGrid, GridToolbar } from "@mui/x-data-grid";
 import { tokens } from "../../theme";
 import Header from "../../components/Header";
@@ -10,7 +10,7 @@ import { getDatabase, ref, onValue } from 'firebase/database';
 const Contacts = () => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
-
+  const [isLoading, setIsLoading] = useState(true);
   const columns = [
     { field: "id", headerName: "ID", flex: 0.5 },
     { field: "registrarId", headerName: "Registrar ID" },
@@ -78,6 +78,7 @@ const Contacts = () => {
       } else {
         setContacts([]);
       }
+      setIsLoading(false);
     });
 
     return () => unsubscribe();
@@ -122,11 +123,13 @@ const Contacts = () => {
               },
             }}
           >
-            <DataGrid
-          rows={contacts}
-          columns={columns}
-          components={{ Toolbar: GridToolbar }}
-        />
+            {isLoading ? ( 
+          <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+            <CircularProgress color="info" />
+          </Box>
+        ) : (
+          <DataGrid rows={contacts} columns={columns} components={{ Toolbar: GridToolbar }} />
+        )}
       </Box>
           </Box>
        

@@ -7,6 +7,7 @@ import {
   Button,
   Card,
   CardContent,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -46,7 +47,7 @@ const CustomerSupport = () => {
   const [selectedInquiry, setSelectedInquiry] = useState(null);
   const [isEditModalOpen, setEditModalOpen] = useState(false);
   const [editedTicket, setEditedTicket] = useState("");
-
+const [loading, setLoading]=useState(true)
   const handleTicketChange = (event) => {
     setTicket(event.target.value);
   };
@@ -144,6 +145,7 @@ const CustomerSupport = () => {
         data.push({ id: childSnapshot.key, ...childSnapshot.val() });
       });
       setInquiries(data);
+      setLoading(false)
     } catch (error) {
       console.error("Error fetching inquiries:", error);
     }
@@ -211,6 +213,11 @@ const CustomerSupport = () => {
         <Typography variant="h6" mt={4}>
           Customer Inquiries
         </Typography>
+        {loading ? ( 
+          <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+            <CircularProgress color="info" />
+          </Box>
+        ) : (
         <TableContainer component={Paper}>
           <Table>
             <TableHead>
@@ -266,7 +273,7 @@ const CustomerSupport = () => {
               ))}
             </TableBody>
           </Table>
-        </TableContainer>
+        </TableContainer>)}
         <Dialog
           open={isEditModalOpen}
           onClose={closeEditModal}

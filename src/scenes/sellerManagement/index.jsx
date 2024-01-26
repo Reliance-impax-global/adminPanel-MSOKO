@@ -16,6 +16,7 @@ import {
   DialogActions,
   TextField,
   Box,
+  CircularProgress,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
@@ -30,6 +31,8 @@ const SellerManagement = () => {
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [commissionRate, setCommissionRate] = useState(0);
   const [editedSellerCommission, setEditedSellerCommission] = useState(0);
+  
+  const [loading, setLoading] = useState(true);
   const [newSeller, setNewSeller] = useState({
     name: "",
     status: "Pending",
@@ -54,6 +57,8 @@ const SellerManagement = () => {
         }
       } catch (error) {
         console.error("Error fetching data:", error);
+      } finally {
+        setLoading(false); 
       }
     };
 
@@ -79,12 +84,12 @@ const SellerManagement = () => {
 
   const handleEditSeller = (seller) => {
     setSelectedSeller(seller);
-    setNewSeller(seller); // Set the selected seller for editing
+    setNewSeller(seller); 
     setOpenDialog(true);
   };
 
   const handleDeleteSeller = async (sellerId) => {
-    // Use SweetAlert2 for confirmation
+  
     const result = await Swal.fire({
       title: "Are you sure?",
       text: "You won't be able to revert this!",
@@ -102,18 +107,18 @@ const SellerManagement = () => {
         const updatedSellers = sellers.filter((seller) => seller.id !== sellerId);
         setSellers(updatedSellers);
 
-        // Show success alert
+       
         Swal.fire("Deleted!", "The seller has been deleted.", "success");
       } catch (error) {
         console.error("Error deleting seller:", error);
-        // Show error alert
+     
         Swal.fire("Error", "An error occurred while deleting the seller.", "error");
       }
     }
   };
 
   const handleApproveSeller = async (sellerId) => {
-    // Show confirmation alert before approving the seller
+   
     const result = await Swal.fire({
       title: "Are you sure?",
       text: "Do you really want to approve this seller?",
@@ -133,11 +138,10 @@ const SellerManagement = () => {
         );
         setSellers(updatedSellers);
 
-        // Show success alert after approving the seller
         Swal.fire("Success", "Seller has been approved successfully.", "success");
       } catch (error) {
         console.error("Error approving seller:", error);
-        // Show error alert
+        
         Swal.fire("Error", "An error occurred while approving the seller.", "error");
       }
     }
@@ -145,14 +149,14 @@ const SellerManagement = () => {
   const handleEditCommission = (seller) => {
     setEditedSellerCommission(seller.commission);
     setSelectedSeller(seller);
-    setNewSeller(seller); // Set the selected seller for editing
+    setNewSeller(seller); 
     setOpenDialog(true);
   };
 
   const handleAddOrUpdateSeller = async () => {
     try {
       if (selectedSeller) {
-        // Update existing seller
+     
         const sellerRef = ref(database, `sellers/${selectedSeller.id}`);
         await update(sellerRef, newSeller);
         const updatedSellers = sellers.map((seller) =>
@@ -160,12 +164,12 @@ const SellerManagement = () => {
         );
         setSellers(updatedSellers);
 
-        // Clear the form and close the dialog
+      
         setNewSeller({ name: "", status: "Pending", commission: 0 });
         setSelectedSeller(null);
         setOpenDialog(false);
 
-        // Show success alert after saving changes
+      
         Swal.fire("Success", "Changes have been saved successfully.", "success");
       } else {
         // Add new seller
@@ -173,17 +177,16 @@ const SellerManagement = () => {
         const newSellerRef = await push(sellersRef, newSeller);
         setSellers([...sellers, { id: newSellerRef.key, ...newSeller }]);
 
-        // Clear the form and close the dialog
+       
         setNewSeller({ name: "", status: "Pending", commission: 0 });
         setOpenDialog(false);
 
-        // Show success alert after adding a new seller
         Swal.fire("Success", "Seller has been added successfully.", "success");
       }
     } catch (error) {
       console.error("Error adding/updating seller:", error);
 
-      // Show error alert
+    
       Swal.fire("Error", "An error occurred while saving changes.", "error");
     }
   };
@@ -204,7 +207,12 @@ const SellerManagement = () => {
   return (
     <div style={{ marginLeft: "16px" }}>
       <h1>Seller Management</h1>
-      <TableContainer component={Paper}>
+      {loading ? ( 
+         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
+         <CircularProgress color="info" />
+       </div>
+      ) : (
+      <TableContainer  component={Paper}>
         <Table>
           <TableHead>
             <TableRow>
@@ -287,7 +295,7 @@ const SellerManagement = () => {
             ))}
           </TableBody>
         </Table>
-      </TableContainer>
+      </TableContainer>)}
 
       <Button
         variant="contained"
@@ -311,7 +319,7 @@ const SellerManagement = () => {
       <Dialog open={openDialog} onClose={handleDialogClose}>
         <DialogTitle>{selectedSeller ? "Edit Seller" : "Add Seller"}</DialogTitle>
         <DialogContent>
-          {/* Add form fields to add/edit a seller */}
+        
           <TextField
             label="Seller Name"
             style={{ marginTop: "16px" }}

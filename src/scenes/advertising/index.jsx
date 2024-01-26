@@ -14,6 +14,8 @@ import {
   TableBody,
   TableRow,
   TableCell,
+  CircularProgress,
+  colors,
 } from "@mui/material";
 import { getDatabase, ref, push, update, remove, onValue } from "firebase/database";
 import Swal from "sweetalert2";
@@ -36,6 +38,7 @@ const Advertisment = () => {
   const [ads, setAds] = useState([]);
   const [ad, setAd] = useState(initialAd);
   const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const fetchDataFromRealtimeDatabase = async () => {
     try {
@@ -48,10 +51,13 @@ const Advertisment = () => {
             ...snapshot.val()[key],
           }));
           setAds(data);
+         
         }
       });
     } catch (error) {
       console.error("Error fetching data:", error);
+    } finally {
+      setLoading(false);
     }
   };
   
@@ -142,6 +148,7 @@ const Advertisment = () => {
         </Toolbar>
       </AppBar>
       <Container style={{ marginBottom: "20px" }}>
+ 
         <Paper elevation={3} style={{ padding: "20px", marginTop: "20px" }}>
           <Typography variant="h5">Create Ad</Typography>
           <form>
@@ -206,6 +213,11 @@ const Advertisment = () => {
             </Button>
           </form>
         </Paper>
+      {loading ? (
+  <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "300px" }}>
+    <CircularProgress style={{ color: 'red' }} />
+  </div>
+) : (
         <Paper
           elevation={3}
           style={{ padding: "20px", marginTop: "20px", marginBottom: "20px" }}
@@ -269,7 +281,7 @@ const Advertisment = () => {
               </TableBody>
             </Table>
           </TableContainer>
-        </Paper>
+        </Paper>)}
       </Container>
     </div>
   );
