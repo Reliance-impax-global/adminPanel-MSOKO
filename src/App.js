@@ -41,6 +41,7 @@ import BusinessInsights from "./scenes/businessInsights";
 import SecurityAndPrivacy from "./scenes/securityandPrivacy";
 import AnalyticsBarChart from "./components/AnalyticsBarChart";
 import Register from "./scenes/register/Register";
+import AddProducts from "./scenes/AddProducts/AddProducts";
 
 
 function App() {
@@ -142,6 +143,7 @@ function App() {
                 <Route path="/calendar" element={<Calendar />} />
                 <Route path="/geography" element={<Geography />} />
                 <Route path="/register" element={<Register />} />
+                <Route path="/addProducts" element={<AddProducts/>} />
               </Routes>
             </main>
           </div>
