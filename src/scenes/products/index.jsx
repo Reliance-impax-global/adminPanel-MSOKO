@@ -1,14 +1,20 @@
-import { Box } from "@mui/material";
+
+import { useState, useEffect } from "react";
+import { Box, CircularProgress } from "@mui/material";
 import { DataGrid, GridToolbar } from "@mui/x-data-grid";
 import { tokens } from "../../theme";
 import Header from "../../components/Header";
 import { useTheme } from "@mui/material";
-import { mockDataProducts } from "../../data/mockData";
+import app from "../../firebase/firebaseConfig";
+import { getDatabase, ref, get } from "firebase/database";
 
 const Products = () => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
 
+  const [products, setProducts] = useState([]);
+
+  const [loading, setLoading] = useState(true);
   const columns = [
     { field: "id", headerName: "ID", flex: 0.5 },
     { field: "productId", headerName: "Product ID" },
@@ -25,16 +31,6 @@ const Products = () => {
       headerAlign: "left",
       align: "left",
     },
-    // {
-    //   field: "phone",
-    //   headerName: "Phone Number",
-    //   flex: 1,
-    // },
-    // {
-    //   field: "email",
-    //   headerName: "Email",
-    //   flex: 1,
-    // },
     {
       field: "description",
       headerName: "Description",
@@ -45,19 +41,41 @@ const Products = () => {
       headerName: "Origin",
       flex: 1,
     },
-    // {
-    //   field: "zipCode",
-    //   headerName: "Zip Code",
-    //   flex: 1,
-    // },
   ];
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const db = getDatabase(app);
+        const productsRef = ref(db, "products");
+        const snapshot = await get(productsRef);
+
+        if (!snapshot.exists()) {
+          console.error("No data found in Firebase");
+          return;
+        }
+
+        const productsArray = [];
+        snapshot.forEach((childSnapshot) => {
+          const key = childSnapshot.key;
+          const data = childSnapshot.val();
+          productsArray.push({ id: productsArray.length + 1, ...data });
+        });
+
+        setProducts(productsArray);
+        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching data from Firebase:", error);
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   return (
     <Box m="20px">
-      <Header
-        title="PRODUCTS"
-        subtitle="List of All Products"
-      />
+      <Header title="PRODUCTS" subtitle="List of All Products" />
       <Box
         m="40px 0 0 0"
         height="75vh"
@@ -90,11 +108,24 @@ const Products = () => {
           },
         }}
       >
-        <DataGrid
-          rows={mockDataProducts}
-          columns={columns}
-          components={{ Toolbar: GridToolbar }}
-        />
+        {loading ? (
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              minHeight: "300px",
+            }}
+          >
+            <CircularProgress style={{ color: colors.primary[400] }} />
+          </div>
+        ) : (
+          <DataGrid
+            rows={products}
+            columns={columns}
+            components={{ Toolbar: GridToolbar }}
+          />
+        )}
       </Box>
     </Box>
   );

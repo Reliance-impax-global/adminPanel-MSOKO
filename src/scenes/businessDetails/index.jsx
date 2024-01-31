@@ -9,6 +9,7 @@ import { getDatabase, ref as dbRef, set, push } from "firebase/database";
 
 const MySwal = withReactContent(Swal);
 
+
 const BusinessDetailsForm = () => {
   const [formData, setFormData] = useState({
     businessName: "",
@@ -26,10 +27,10 @@ const BusinessDetailsForm = () => {
 
   const handleInputChange = (event) => {
     const { name, value } = event.target;
-    setFormData({
-      ...formData,
+    setFormData((prevData) => ({
+      ...prevData,
       [name]: value,
-    });
+    }));
 
     setValidationErrors({
       ...validationErrors,
@@ -37,84 +38,85 @@ const BusinessDetailsForm = () => {
     });
   };
 
-  const handleFileUpload = async (event) => {
+  const handleFileInputChange = (event) => {
     const file = event.target.files[0];
-  
-    if (!file) {
-      setValidationErrors({
-        ...validationErrors,
-        fileUpload: "Please select a file.",
-      });
-      return;
-    }
-  
-    const allowedFileTypes = ["application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
-    if (!allowedFileTypes.includes(file.type)) {
-      setValidationErrors({
-        ...validationErrors,
-        fileUpload: "Invalid file type. Accepted formats: .pdf, .doc, .docx",
-      });
-      return;
-    }
-  
-    const maxSizeInBytes = 5 * 1024 * 1024; // 5 MB
-    if (file.size > maxSizeInBytes) {
-      setValidationErrors({
-        ...validationErrors,
-        fileUpload: "File size exceeds the limit (5 MB).",
-      });
-      return;
-    }
-  
-    const storage = getStorage();
-    const storageReference = storageRef(storage, `documents/${file.name}`);
-    await uploadBytes(storageReference, file);
-  
-    const downloadURL = await getDownloadURL(storageReference);
-  
-    setFormData({
-      ...formData,
-      documentURL: downloadURL,
-    });
+    handleFileUpload(file);
   };
-  
+
+  const handleFileUpload = async (file) => {
+    try {
+      if (!file) {
+        setValidationErrors({
+          ...validationErrors,
+          fileUpload: "Please select a file.",
+        });
+        return;
+      }
+
+      const allowedFileTypes = ["application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
+      if (!allowedFileTypes.includes(file.type)) {
+        setValidationErrors({
+          ...validationErrors,
+          fileUpload: "Invalid file type. Accepted formats: .pdf, .doc, .docx",
+        });
+        return;
+      }
+
+      const maxSizeInBytes = 5 * 1024 * 1024; // 5 MB
+      if (file.size > maxSizeInBytes) {
+        setValidationErrors({
+          ...validationErrors,
+          fileUpload: "File size exceeds the limit (5 MB).",
+        });
+        return;
+      }
+
+      const storage = getStorage();
+      const storageReference = storageRef(storage, `documents/${file.name}`);
+      await uploadBytes(storageReference, file);
+
+      const downloadURL = await getDownloadURL(storageReference);
+
+      setFormData((prevData) => ({
+        ...prevData,
+        documentURL: downloadURL,
+      }));
+    } catch (error) {
+      console.error("Error handling file upload:", error);
+      // Handle the error appropriately
+    }
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-  
+
     if (validateForm()) {
       const database = getDatabase();
-      const businessDetailsRef = dbRef(database, 'businessDetails');
-  
+      const businessDetailsRef = dbRef(database, "businessDetails");
+
       // Generate a new unique key using push
       const newBusinessDetailsRef = push(businessDetailsRef);
-  
+
       // Set data at the new location
-      await set(newBusinessDetailsRef, formData)
-        .then(() => {
-          // Reset the form data to clear the fields
-          setFormData({
-            businessName: "",
-            taxIdentificationNumber: "",
-            vrnNumber: "",
-            address: "",
-            documentURL: "",
-          });
-  
-          // Display success message
-          MySwal.fire({
-            icon: "success",
-            title: "Form Submitted!",
-            text: "Your data has been successfully submitted.",
-          });
-        })
-        .catch((error) => {
-          console.error("Error submitting form data:", error);
-          // Optionally handle the error here
-        });
+      await set(newBusinessDetailsRef, formData);
+
+      // Reset the form data to clear the fields
+      setFormData({
+        businessName: "",
+        taxIdentificationNumber: "",
+        vrnNumber: "",
+        address: "",
+        documentURL: "",
+      });
+
+      // Display success message
+      MySwal.fire({
+        icon: "success",
+        title: "Form Submitted!",
+        text: "Your data has been successfully submitted.",
+      });
     }
   };
-  
 
   const validateForm = () => {
     let isValid = true;
@@ -202,22 +204,21 @@ const BusinessDetailsForm = () => {
   />
 </Grid>
 
-
-          <Grid item xs={12}>
-            <Typography variant="body2" style={{ marginBottom: "16px" }}>
-              Business License Document/TIN Certificate (Accepted formats: .pdf, .doc, .docx)
-            </Typography>
-            <input
-              type="file"
-              accept=".pdf, .doc, .docx"
-              onChange={handleFileUpload}
-            />
-            {validationErrors.fileUpload && (
-              <Typography variant="body2" color="error">
-                {validationErrors.fileUpload}
-              </Typography>
-            )}
-          </Grid>
+<Grid item xs={12}>
+        <Typography variant="body2" style={{ marginBottom: "16px" }}>
+          Business License Document/TIN Certificate (Accepted formats: .pdf, .doc, .docx)
+        </Typography>
+        <input
+          type="file"
+          accept=".pdf, .doc, .docx"
+          onChange={handleFileInputChange}
+        />
+        {validationErrors.fileUpload && (
+          <Typography variant="body2" color="error">
+            {validationErrors.fileUpload}
+          </Typography>
+        )}
+      </Grid>
         </Grid>
         <Box mt={2}>
           <Button variant="contained" color="info" type="submit">
