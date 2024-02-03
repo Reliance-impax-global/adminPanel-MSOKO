@@ -42,6 +42,7 @@ import SecurityAndPrivacy from "./scenes/securityandPrivacy";
 import AnalyticsBarChart from "./components/AnalyticsBarChart";
 import Register from "./scenes/register/Register";
 import AddProducts from "./scenes/AddProducts/AddProducts";
+import AddProperty from "./scenes/Add Property/AddPropety";
 
 
 function App() {
@@ -144,6 +145,7 @@ function App() {
                 <Route path="/geography" element={<Geography />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/addProducts" element={<AddProducts/>} />
+                <Route path="/addProperty" element={<AddProperty/>} />
               </Routes>
             </main>
           </div>
