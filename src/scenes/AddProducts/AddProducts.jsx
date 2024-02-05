@@ -149,7 +149,7 @@ const AddProduct = () => {
                 <React.Fragment key={field.field}>
                   {field.type === 'file' ? (
                     <TextField
-                      fullWidth
+                      fullWidth  
                       variant="filled"
                       type="file"
                       label={field.headerName}
@@ -166,7 +166,7 @@ const AddProduct = () => {
                       type={field.type || 'text'}
                       label={field.headerName}
                       multiline={field.field === 'description' || field.field === 'specifications'}
-                      rows={4}
+                      rows={4} color="info"
                       onBlur={handleBlur}
                       onChange={handleChange}
                       value={values[field.field]}
