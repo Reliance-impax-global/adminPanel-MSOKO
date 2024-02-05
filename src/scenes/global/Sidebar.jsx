@@ -37,7 +37,7 @@ import DynamicFormIcon from "@mui/icons-material/DynamicForm";
 import AddBusinessIcon from "@mui/icons-material/AddBusiness";
 import CorporateFareIcon from "@mui/icons-material/CorporateFare";
 import { UserAuthContext } from "../../AuthContext/AuthProvider";
-import { Create, CreateOutlined } from "@mui/icons-material";
+import { Add, Create, CreateOutlined } from "@mui/icons-material";
 
 const Item = ({ title, to, icon, selected, setSelected }) => {
   const theme = useTheme();
@@ -338,9 +338,9 @@ const Sidebar = () => {
                 setSelected={setSelected}
               />
               <Item
-                title="Add Products"
+                title="Add Properties"
                 to="/addProperty"
-                icon={<CreateOutlined />}
+                icon={<Add />}
                 selected={selected}
                 setSelected={setSelected}
               />

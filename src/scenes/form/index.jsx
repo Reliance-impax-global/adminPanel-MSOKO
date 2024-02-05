@@ -207,8 +207,7 @@ const Form = () => {
       <Box m="20px">
       <Header title="DISPLAY SERVICES" subtitle="List of Services" />
 
-      <Box m="20px">
-  <Header title="DISPLAY SERVICES" subtitle="List of Services" />
+  
 
   {services.length > 0 && (
     <Box p="10px" mb="10px" border="1px solid #ddd">
@@ -222,7 +221,7 @@ const Form = () => {
   )}
 </Box>
     </Box>
-    </Box>
+ 
   );
 };
 
