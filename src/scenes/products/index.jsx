@@ -1,6 +1,6 @@
 
-import { useState, useEffect } from "react";
-import { Box, CircularProgress } from "@mui/material";
+import React, { useState, useEffect } from "react";
+import { Box, CircularProgress, TextField } from "@mui/material";
 import { DataGrid, GridToolbar } from "@mui/x-data-grid";
 import { tokens } from "../../theme";
 import Header from "../../components/Header";
@@ -13,13 +13,15 @@ const Products = () => {
   const colors = tokens(theme.palette.mode);
 
   const [products, setProducts] = useState([]);
-
+  const [filteredProducts, setFilteredProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+
   const columns = [
-    { field: "id", headerName: "ID", flex: 0.5 },
-    { field: "productId", headerName: "Product ID" },
+    { field: "id", headerName: "ID", width: 100 },
+    { field: "productId", headerName: "Product ID", flex: 1, minWidth: 300 },
     {
-      field: "name",
+      field: "productName",
       headerName: "Name",
       flex: 1,
       cellClassName: "name-column--cell",
@@ -73,9 +75,37 @@ const Products = () => {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    // Filter products based on the search query
+    const filtered = products.filter((product) => {
+      const searchText = searchQuery.toLowerCase();
+      return (
+        product.productId.toLowerCase().includes(searchText) ||
+        product.productName.toLowerCase().includes(searchText) ||
+        // Add more fields if needed
+        product.description.toLowerCase().includes(searchText) ||
+        product.origin.toLowerCase().includes(searchText) ||
+        // ...
+        false
+      );
+    });
+
+    setFilteredProducts(filtered);
+  }, [searchQuery, products]);
+
   return (
     <Box m="20px">
       <Header title="PRODUCTS" subtitle="List of All Products" />
+
+      <TextField
+        label="Search"
+        variant="outlined"
+       
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)} color="info"
+        style={{ marginBottom: "20px",width:"50%"  }}
+      />
+
       <Box
         m="40px 0 0 0"
         height="75vh"
@@ -121,10 +151,11 @@ const Products = () => {
           </div>
         ) : (
           <DataGrid
-            rows={products}
-            columns={columns}
-            components={{ Toolbar: GridToolbar }}
-          />
+  rows={filteredProducts}
+  columns={columns}
+  components={{ Toolbar: GridToolbar }}
+/>
+
         )}
       </Box>
     </Box>
