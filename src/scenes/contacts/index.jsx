@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from "react";
-import { Box, CircularProgress } from "@mui/material";
+import { Box, CircularProgress, TextField } from "@mui/material";
 import { DataGrid, GridToolbar } from "@mui/x-data-grid";
 import { tokens } from "../../theme";
 import Header from "../../components/Header";
@@ -11,6 +11,8 @@ const Contacts = () => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
   const [isLoading, setIsLoading] = useState(true);
+  const [originalContacts, setOriginalContacts] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const columns = [
     { field: "id", headerName: "ID", flex: 0.5 },
     { field: "registrarId", headerName: "Registrar ID" },
@@ -59,11 +61,11 @@ const Contacts = () => {
   useEffect(() => {
     const db = getDatabase();
     const sellerDetailsContractsRef = ref(db, 'sellerDetails&Contracts');
-
+  
     const unsubscribe = onValue(sellerDetailsContractsRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
-        const contactsArray = Object.keys(data).map((key,index) => ({
+        const contactsArray = Object.keys(data).map((key, index) => ({
           id: index + 1,
           registrarId: data[key].id,
           name: `${data[key].firstName} ${data[key].lastName}`,
@@ -74,17 +76,40 @@ const Contacts = () => {
           city: data[key].city,
           zipCode: data[key].zipCode,
         }));
+  
         setContacts(contactsArray);
+        setOriginalContacts(contactsArray); // Set originalContacts to contactsArray
       } else {
         setContacts([]);
+        setOriginalContacts([]); // Set originalContacts to an empty array when there is no data
       }
       setIsLoading(false);
     });
-
+  
     return () => unsubscribe();
   }, []);
-
-
+  
+  const handleSearch = (event) => {
+    const searchTerm = event.target.value.toLowerCase();
+    const filteredContacts = originalContacts.filter((contact) =>
+      Object.values(contact).some(
+        (value) =>
+          value &&
+          typeof value === "string" &&
+          value.toLowerCase().includes(searchTerm)
+      )
+    );
+  
+    // Check if the search term is empty
+    if (searchTerm === "") {
+      setContacts(originalContacts); // Set contacts to original data when search term is empty
+    } else {
+      setContacts(filteredContacts);
+    }
+  
+    setSearchTerm(searchTerm);
+  };
+  
   return (
     <Box m="20px">
           <Header
@@ -123,6 +148,14 @@ const Contacts = () => {
               },
             }}
           >
+              <TextField
+          label="Search"
+          variant="outlined"
+          value={searchTerm}
+          onChange={handleSearch}
+          color="info"
+          style={{ marginBottom: "20px", width: "50%" }}
+        />
             {isLoading ? ( 
           <Box display="flex" justifyContent="center" alignItems="center" height="100%">
             <CircularProgress color="info" />
